@@ -1,0 +1,279 @@
+---
+title: "W02: Reflection on Fundamentals of Machine Learning"
+subtitle: "Reflections and Hands-On Lab"
+author: "Ron Stephen Sabilla"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    number-sections: true
+    theme: cosmo
+    code-fold: false
+    code-tools: true
+    link-external-newwindow: true
+    df-print: paged
+    embed-resources: true
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+## Overview
+
+This report covers key reflections on machine learning fundamentals, including an introduction to tidymodels, five foundational ML concepts from StatQuest, and hands-on modeling practice using base R and the broom package.
+
+---
+
+# Step 1: Tidymodels
+
+## What is Tidymodels?
+
+Tidymodels is basically the modern upgrade to caret that the R community needed — instead of one giant package trying to do everything, it splits the work across focused packages like `parsnip` for modeling, `recipes` for preprocessing, and `yardstick` for metrics, which honestly makes a lot more sense once you get used to it. Compared to caret, the biggest difference is that parsnip gives you one consistent interface to swap between hundreds of models without rewriting your whole pipeline, and everything plays nicely with the tidyverse and pipes so your code actually looks clean and readable.
+
+I also learned that it is a meta-package, meaning `install.packages("tidymodels")` gets you all the core stuff at once, but there are also specialized add-ons like `stacks` for ensemble models or `textrecipes` for text processing that you load separately when you need them. The consistency is probably the strongest part — once you learn how tidymodels works, that same pattern carries over to pretty much any model or task you throw at it, and it is still being actively developed with extensions for things like spatial data and class imbalance. The weaknesses though are pretty noticeable: the learning curve is steep because you are really learning like five or six packages at the same time rather than just one API, and there is a lot more boilerplate compared to something like Python's scikit-learn. Overall though, caret is kind of becoming outdated at this point and tidymodels is clearly where R machine learning is headed.
+
+## Tidymodels Workflow
+
+A typical tidymodels workflow follows these steps:
+
+1. **Split the data** using `rsample` (e.g., `initial_split()`)
+2. **Preprocess** using `recipes` — handle missing values, encode variables, scale features
+3. **Specify the model** using `parsnip` — choose model type and engine
+4. **Bundle into a workflow** using `workflows`
+5. **Tune hyperparameters** using `tune` and `dials`
+6. **Evaluate performance** using `yardstick`
+7. **Finalize and fit** the best model on the full training data
+
+The whole thing is designed to be modular, so you can swap out any piece without breaking the rest of the pipeline.
+
+## MLOps and the {vetiver} Package
+
+MLOps refers to the practice of operationalizing machine learning models — basically taking a model from a notebook and putting it into production in a reliable, reproducible, and monitored way. It covers things like versioning models, deploying them as APIs, and tracking performance over time.
+
+The `{vetiver}` package in R is built specifically for this. It lets you version and store trained models, deploy them as REST APIs using Plumber, and monitor model performance in production. Essentially it bridges the gap between data science work and software engineering, making it easier to keep models running reliably after they leave the development environment.
+
+---
+
+# Step 2: StatQuest — Key ML Concepts
+
+## A Gentle Introduction to Machine Learning
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Machine Learning | Training an algorithm on data so it can make predictions without being explicitly programmed | It is the entire foundation of predictive modeling |
+| Training Data | The data the model learns patterns from | Without good training data, the model has nothing meaningful to learn |
+| Testing Data | Separate data used to evaluate how well the model learned | Tells you if the model works on new, unseen data |
+| Overfitting | Model learns the training data too well, including noise, and fails on new data | One of the most common problems in ML |
+| Underfitting | Model is too simple to capture real patterns | Leads to poor predictions across the board |
+
+## Machine Learning Fundamentals: Cross Validation
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Cross Validation | Splitting data into multiple folds and rotating which is used for testing | Gives a more reliable estimate of model performance than one single split |
+| K-Fold CV | Data is split into K chunks; model trains K times, each time using a different fold as the test set | Reduces the chance results are just lucky based on how you split |
+| Generalization | How well a model performs on data it has not seen | This is ultimately what you care about in ML |
+| Model Selection | Using CV results to choose between models or hyperparameter settings | Prevents picking a model that just got lucky on one split |
+
+## Machine Learning Fundamentals: The Confusion Matrix
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Confusion Matrix | A table breaking predictions into TP, TN, FP, FN | Accuracy alone does not tell the full story |
+| True Positives (TP) | Model correctly predicted the positive class | The hits |
+| True Negatives (TN) | Model correctly predicted the negative class | The correct rejections |
+| False Positives (FP) | Predicted positive but actually negative — Type I error | Could mean a false alarm, costly in many contexts |
+| False Negatives (FN) | Predicted negative but actually positive — Type II error | Can be very costly in high-stakes situations like disease detection |
+
+## Machine Learning Fundamentals: Sensitivity and Specificity
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Sensitivity (Recall) | TP / (TP + FN) — how many actual positives were caught | Critical when missing a positive case is very costly |
+| Specificity | TN / (TN + FP) — how many actual negatives were correctly identified | Important when false alarms are disruptive |
+| The Tradeoff | Increasing sensitivity often decreases specificity and vice versa | Depending on the problem, you may need to prioritize one |
+| Threshold Adjustment | Changing the classifier decision threshold shifts the sensitivity/specificity balance | A practical tool for tuning a model to a specific use case |
+
+## Machine Learning Fundamentals: Bias and Variance
+
+| Concept | Definition | Why It Matters |
+|---|---|---|
+| Bias | Error from a model being too simple | High bias leads to underfitting — misses real patterns |
+| Variance | Error from a model being too sensitive to training data noise | High variance leads to overfitting — does not generalize |
+| Bias-Variance Tradeoff | Cannot minimize both at once — more complexity reduces bias but increases variance | Finding the right balance is one of the central challenges in ML |
+| Total Error | Combination of bias, variance, and irreducible noise | Goal is to minimize overall error on new data, not just training data |
+
+---
+
+# Step 3: Hands-On Modeling
+
+## Setup
+
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+## Practice 3.1 — Base R Modeling with mtcars
+
+### Fit the Model and Use tidy()
+
+```{r}
+fit_simple <- lm(mpg ~ wt, data = mtcars)
+tidy(fit_simple)
+```
+
+Running the simple linear model with just weight predicting mpg, the `tidy()` output shows that for every extra 1,000 lbs of weight, a car loses about **5.34 mpg** — which honestly makes a lot of sense. The p-value on weight is basically zero (1.29e-10) so it is clearly a significant predictor.
+
+### Use glance() to Check Model Fit
+
+```{r}
+glance(fit_simple)
+```
+
+The `glance()` output shows an R² of **0.753**, meaning weight alone explains about **75% of the variation in mpg**, which is actually really good for just one variable.
+
+### Use augment() — First 10 Rows
+
+```{r}
+augment(fit_simple) |> head(10)
+```
+
+`augment()` is pretty useful — it basically takes your model and staples the predicted values and residuals back onto your original dataset. So now instead of just having `mpg` and `wt`, you also get `.fitted` (what the model predicted), `.resid` (how far off it was), and some influence metrics like `.cooksd`. It makes it way easier to diagnose your model without having to pull things apart manually.
+
+### Residuals vs. Fitted Plot
+
+```{r}
+augment(fit_simple) |>
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point(color = "#005030", alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#FFB81C") +
+  labs(
+    title = "Fitted Values vs. Residuals",
+    x = "Fitted values",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+```
+
+::: {.callout-note}
+**Interpretation:** What you want to see is just a random cloud of points scattered around the zero line with no real pattern — that would mean the model's errors are consistent across all predicted values. In the mtcars plot though, there is a slight curve to it, which suggests the relationship between weight and mpg might not be perfectly linear. It is not terrible, but it is not ideal either and probably means the model could be improved.
+:::
+
+### Adding hp and cyl to the Model
+
+```{r}
+fit_multi <- lm(mpg ~ wt + hp + cyl, data = mtcars)
+tidy(fit_multi)
+glance(fit_multi)
+```
+
+```{r}
+augment(fit_multi) |>
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point(color = "#005030", alpha = 0.7) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#FFB81C") +
+  labs(
+    title = "Residuals vs. Fitted — Extended Model",
+    x = "Fitted values",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+```
+
+Adding hp and cyl bumps R² from 0.753 up to around **0.843**, so yes it definitely improves. The residual plot also cleans up a bit since those extra variables are picking up variation that weight was missing on its own. The adjusted R² goes up too which means the added variables are actually pulling their weight and not just inflating the number. Basically it just shows that mpg is not only about how heavy the car is — horsepower and number of cylinders matter too.
+
+---
+
+## Practice 3.2 — Marketing Data Model
+
+### Setup
+
+```{r}
+# Load or simulate customer_data here
+# Example simulation:
+set.seed(42)
+n <- 500
+customer_data <- tibble(
+  tenure         = runif(n, 1, 60),
+  num_products   = sample(1:5, n, replace = TRUE),
+  region         = sample(c("North", "South", "East", "West"), n, replace = TRUE),
+  num_complaints = rpois(n, 1),
+  last_login_days = runif(n, 1, 90),
+  monthly_spend  = 50 + 2 * tenure + 15 * num_products +
+                   rnorm(n, 0, 20)
+)
+```
+
+### Fit the Model
+
+```{r}
+spend_fit <- lm(
+  monthly_spend ~ tenure + num_products + region,
+  data = customer_data
+)
+```
+
+### tidy() vs summary()
+
+```{r}
+tidy(spend_fit)
+```
+
+```{r}
+summary(spend_fit)
+```
+
+`tidy()` gives you a clean table that is easy to read and work with, while `summary()` dumps everything into a big block of text — same info, just way messier. For quick interpretation `tidy()` wins, but `summary()` is useful when you want everything in one place.
+
+### Interpreting Significance at Alpha = .05
+
+Looking at the p-values from `tidy()`, any variable with a p-value below 0.05 is considered statistically significant:
+
+- **tenure** — likely significant, meaning longer-tenured customers spend more consistently
+- **num_products** — probably the strongest predictor and clearly significant, more products almost always means more spending
+- **region** — mixed results; some region dummies may be significant and others may not depending on whether the simulation built that relationship in
+
+### Model Quality with glance()
+
+```{r}
+glance(spend_fit)
+```
+
+`glance()` gives you the overall model stats in one row. You are mainly looking at R² to see how much variation the model explains, adjusted R² to make sure added predictors are actually earning their spot, and the F-statistic p-value to confirm the model is doing something useful overall. If adjusted R² is close to R² that means you are not just inflating the number with useless predictors.
+
+### Residuals vs. Fitted Plot
+
+```{r}
+augment(spend_fit) |>
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point(alpha = 0.3, color = "#005030") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "#FFB81C") +
+  labs(
+    title = "Residuals: Monthly Spend Model",
+    x = "Fitted values ($)",
+    y = "Residuals"
+  ) +
+  theme_minimal()
+```
+
+::: {.callout-note}
+**Interpretation:** You want a random cloud of points around zero with no obvious pattern. If the spread fans out as fitted values get bigger that is heteroskedasticity, which is really common with spending data since higher spenders just tend to be more unpredictable. If you see that funnel shape it means the model's assumptions are being violated a bit and you might need to log the outcome variable.
+:::
+
+### Adding num_complaints and last_login_days
+
+```{r}
+spend_fit2 <- lm(
+  monthly_spend ~ tenure + num_products + region +
+    num_complaints + last_login_days,
+  data = customer_data
+)
+tidy(spend_fit2)
+glance(spend_fit2)
+```
+
+R² will go up a little but the bigger thing to look at is whether both predictors are actually significant. If one of them is not, it basically means the simulation did not build that relationship into the data — it was just noise. It is a good reminder that in real life you would not always know which variables actually matter, but with simulated data the model kind of tells you how the data was built.
